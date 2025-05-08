@@ -1,0 +1,2 @@
+[console_scripts]
+md2pptx-builder = md2pptx_builder.cli:main

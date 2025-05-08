@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "md2pptx-builder"
+version = "0.1.0"
+description = "Markdown to PowerPoint converter with CLI and GUI"
+readme = "README.md"
+authors = [
+    {name = "MDtoPPTX Team"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "python-pptx>=0.6.21",
+    "mistune>=3.0.0",
+    "Pillow>=9.0.0",
+    "streamlit>=1.20.0",
+]
+requires-python = ">=3.10"
+
+[project.scripts]
+md2pptx-builder = "md2pptx_builder.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/md2pptx-builder"
+"Bug Tracker" = "https://github.com/yourusername/md2pptx-builder/issues"
+
+[tool.setuptools]
+packages = ["md2pptx_builder"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"] 

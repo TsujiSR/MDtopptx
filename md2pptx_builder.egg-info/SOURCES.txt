@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+md2pptx_builder/__init__.py
+md2pptx_builder/app.py
+md2pptx_builder/builder.py
+md2pptx_builder/cli.py
+md2pptx_builder/parser.py
+md2pptx_builder/utils.py
+md2pptx_builder.egg-info/PKG-INFO
+md2pptx_builder.egg-info/SOURCES.txt
+md2pptx_builder.egg-info/dependency_links.txt
+md2pptx_builder.egg-info/entry_points.txt
+md2pptx_builder.egg-info/requires.txt
+md2pptx_builder.egg-info/top_level.txt
+tests/test_app.py
+tests/test_cli.py
+tests/test_parser.py
