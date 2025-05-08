@@ -94,7 +94,8 @@ def create_presentation(
     background_path: str, 
     logo_path: str, 
     template_path: Optional[str] = None,
-    output_filename: str = "output.pptx"
+    output_filename: str = "output.pptx",
+    font_family: str = "メイリオ"
 ) -> Optional[str]:
     """プレゼンテーションを作成する
     
@@ -104,6 +105,7 @@ def create_presentation(
         logo_path: ロゴ画像パス
         template_path: テンプレートパス（オプション）
         output_filename: 出力ファイル名
+        font_family: 使用するフォント
         
     Returns:
         Optional[str]: 出力ファイルパスまたはNone
@@ -133,6 +135,7 @@ def create_presentation(
             background_path=background_path,
             logo_path=logo_path,
             template_path=template_path,
+            font_family=font_family,
             verbose=False
         )
         
@@ -197,6 +200,61 @@ def app():
             logo_path = None
             st.warning("ロゴ画像をアップロードしてください")
         
+        # フォント設定
+        st.subheader("フォント設定")
+        font_options = {
+            "メイリオ": "メイリオ (Meiryo)",
+            "游ゴシック": "游ゴシック (Yu Gothic)",
+            "游明朝": "游明朝 (Yu Mincho)",
+            "MS Pゴシック": "MS Pゴシック (MS PGothic)",
+            "MS P明朝": "MS P明朝 (MS PMincho)",
+            "BIZ UDゴシック": "BIZ UDゴシック (BIZ UDGothic)",
+            "BIZ UD明朝": "BIZ UD明朝 (BIZ UDMincho)",
+            "UD デジタル 教科書体": "UD デジタル 教科書体 (UD Digi Kyokasho)",
+            "Mplus 1p": "Mplus 1p",
+            "Noto Sans JP": "Noto Sans JP",
+            "Noto Serif JP": "Noto Serif JP",
+            "Kosugi Maru": "Kosugi Maru",
+            "Sawarabi Gothic": "Sawarabi Gothic",
+            "Sawarabi Mincho": "Sawarabi Mincho",
+        }
+        
+        # フォントカテゴリ (ゴシック体と明朝体を分ける)
+        gothic_fonts = ["メイリオ", "游ゴシック", "MS Pゴシック", "BIZ UDゴシック", 
+                       "UD デジタル 教科書体", "Mplus 1p", "Noto Sans JP", "Kosugi Maru", "Sawarabi Gothic"]
+        mincho_fonts = ["游明朝", "MS P明朝", "BIZ UD明朝", "Noto Serif JP", "Sawarabi Mincho"]
+        
+        # フォントカテゴリ選択
+        font_category = st.radio(
+            "フォントカテゴリ",
+            ["ゴシック体 (Sans-serif)", "明朝体 (Serif)"],
+            index=0,
+            help="スライドで使用するフォントのカテゴリを選択してください"
+        )
+        
+        # カテゴリに応じたフォントリスト
+        if "ゴシック体" in font_category:
+            font_list = gothic_fonts
+            default_index = 0 if "メイリオ" in font_list else 0
+        else:
+            font_list = mincho_fonts
+            default_index = 0 if "游明朝" in font_list else 0
+        
+        # フォント選択ドロップダウン
+        selected_font = st.selectbox(
+            "フォント選択",
+            options=font_list,
+            index=default_index,
+            format_func=lambda x: font_options.get(x, x),
+            help="スライドで使用するフォントを選択してください。英語テキストには自動的に適切なフォールバックフォントが使用されます。"
+        )
+        
+        # フォールバック説明
+        if "明朝体" in font_category:
+            st.info("英語テキストには Times New Roman がフォールバックとして使用されます。")
+        else:
+            st.info("英語テキストには Arial がフォールバックとして使用されます。")
+        
         # テンプレート（オプション）
         template_file = st.file_uploader("テンプレートPPTX（オプション）", type=["pptx"])
         if template_file:
@@ -251,7 +309,8 @@ def app():
                     background_path=background_path,
                     logo_path=logo_path,
                     template_path=template_path,
-                    output_filename=output_filename
+                    output_filename=output_filename,
+                    font_family=selected_font
                 )
                 
                 if output_path:

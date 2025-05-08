@@ -179,6 +179,10 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## 開発リファレンス
+
+- [Mistune ASTリファレンス](./mistune_ast_reference.md) - Mistune 3.xがMarkdownをどのようにASTに変換するかの詳細ガイド
+
 ## 最近の更新
 
 - mistune 3.1.3との完全な互換性
