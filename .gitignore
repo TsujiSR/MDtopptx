@@ -1,0 +1,60 @@
+# Python バイトコードとキャッシュ
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 仮想環境
+venv/
+env/
+ENV/
+.venv/
+
+# ビルドとディストリビューション
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# テスト関連
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# エディタ設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# プロジェクト固有ファイル
+*.pptx
+*.ppt
+*.log
+*.tmp
+.streamlit/
+
+# 例外（gitに含めるファイル）
+!samples/*.md
+!requirements.txt 

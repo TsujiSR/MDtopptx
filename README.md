@@ -3,17 +3,28 @@
 Markdownファイルから会社ロゴと背景画像を重ねたPowerPointプレゼンテーションを自動生成するツール。
 CLIとGUI（Streamlit）の両方に対応しています。
 
-## 機能
+## 特徴
 
 - Markdownファイルからスライドごとに分割して.pptxファイルを生成
 - 背景画像とロゴを全スライドに適用
-- 見出し、段落、箇条書きを適切にフォーマット
+- 見出し、段落、箇条書き、コードブロックを適切にフォーマット
+- テキスト強調（**太字**、*斜体*）のサポート
+- 入れ子リスト（ネストされた箇条書き）のサポート
+- 最適化されたフォントサイズとスペーシング
 - CLI（コマンドライン）とGUI（Streamlit）の両方で利用可能
 
 ## インストール
 
+### pipから直接インストール（予定）
 ```bash
 pip install md2pptx-builder
+```
+
+### リポジトリからインストール
+```bash
+git clone https://github.com/yourusername/md2pptx-builder.git
+cd md2pptx-builder
+pip install -e .
 ```
 
 ## 使い方
@@ -24,6 +35,12 @@ pip install md2pptx-builder
 # 基本的な使い方
 md2pptx-builder input.md -b background.jpg -l logo.png -o output.pptx
 
+# 詳細ログを有効にする
+md2pptx-builder input.md -b background.jpg -l logo.png -o output.pptx --verbose
+
+# テンプレートを使用する場合
+md2pptx-builder input.md -b background.jpg -l logo.png -o output.pptx -t template.pptx
+
 # ヘルプを表示
 md2pptx-builder --help
 ```
@@ -33,15 +50,20 @@ md2pptx-builder --help
 ```bash
 # Streamlitアプリを起動
 streamlit run -m md2pptx_builder.app
+
+# または、開発環境から直接実行する場合
+streamlit run md2pptx_builder/app.py
 ```
 
 ブラウザで `http://localhost:8501/` にアクセスすると、GUIが表示されます。
 
-## 入力ファイル形式
+## Markdownファイルの書き方
+
+### スライド分割
 
 Markdownファイルは以下の区切り文字でスライド分割されます：
 
-```
+```markdown
 # スライド1のタイトル
 
 コンテンツ
@@ -53,17 +75,79 @@ Markdownファイルは以下の区切り文字でスライド分割されます
 コンテンツ
 ```
 
-## 必要環境
+または、HTMLコメント形式も使用できます：
 
-- Python 3.10以上
-- 依存ライブラリ:
-  - python-pptx
-  - mistune
-  - Pillow
-  - streamlit
+```markdown
+# スライド1のタイトル
+
+コンテンツ
+
+<!-- pagebreak -->
+
+# スライド2のタイトル
+
+コンテンツ
+```
+
+### サポートされる書式
+
+- **見出し**：`#`（スライドタイトル）、`##`（セクション見出し）、`###`（小見出し）
+- **テキスト強調**：`**太字**`、`*斜体*`
+- **リスト**：順序付き (`1. 項目`) ・順序なし (`- 項目`) リスト
+- **コードブロック**：\`\`\` で囲まれたコードブロック
+
+## レイアウト仕様
+
+- **スライドサイズ**：16:9比率（標準的なワイドスクリーン）
+- **フォント**：メイリオ（日本語）、Arial（英数字）
+- **サイズ**：
+  - タイトル：32pt
+  - 見出し：22-18pt（レベルによる）
+  - 本文：16pt
+  - リスト：15pt（サブリスト：13pt）
+  - コード：14pt
+
+## 技術詳細
+
+- **Markdownパーサー**：mistune 3.1.3
+- **PowerPoint操作**：python-pptx
+- **画像処理**：Pillow
+- **GUI**：Streamlit
+
+## 依存ライブラリ
+
+- Python 3.8以上
+- python-pptx >= 0.6.21
+- mistune >= 3.0.0
+- Pillow >= 9.0.0
+- streamlit >= 1.20.0
+
+## 開発
+
+```bash
+# 開発用インストール
+git clone https://github.com/yourusername/md2pptx-builder.git
+cd md2pptx-builder
+pip install -e ".[dev]"
+
+# テスト実行
+pytest
+```
+
+## 最近の更新
+
+- mistune 3.1.3との完全な互換性
+- リスト項目とテキスト強調の表示問題を修正
+- スライドレイアウトとスペーシングの改善
+- フォントサイズの最適化
 
 ## ライセンス
 
-MIT 
+MIT
 
-md2pptx-builder samples/test.md -b <背景画像パス> -l <ロゴ画像パス> -o output.pptx 
+## サンプル実行
+
+```bash
+# サンプルMarkdownからプレゼンテーションを生成
+md2pptx-builder samples/test.md -b background.jpg -l logo.jpg -o output.pptx
+``` 
