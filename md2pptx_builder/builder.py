@@ -348,11 +348,17 @@ class PPTXBuilder:
             # リスト項目のテキストを抽出
             item_text = self._list_item_to_text(item)
             
+            # 空のリスト項目は処理しない
+            if not item_text.strip():
+                logger.info(f"空のリスト項目をスキップ: {item}")
+                continue
+                
             # リスト項目を段落として追加
             p = text_frame.add_paragraph()
             p.level = depth  # インデントレベル
             
             run = p.add_run()
+            # マーカーとテキストの間に適切な空白を入れる
             run.text = f"{marker} {item_text}"
             
             # フォントスタイル設定
@@ -395,25 +401,54 @@ class PPTXBuilder:
         Returns:
             str: 抽出されたテキスト
         """
-        if "children" not in node:
-            return node.get("raw", node.get("text", ""))
+        node_type = node.get("type", "")
+        logger.info(f"_node_to_text処理: type={node_type}, node={node}")
         
+        # 特殊なノードタイプの直接処理
+        if node_type == "codespan":
+            code_content = node.get("raw", "")
+            # codespan.rawはバッククォート含む場合があるので除去
+            if code_content.startswith("`") and code_content.endswith("`"):
+                code_content = code_content[1:-1]
+            logger.info(f"_node_to_text: コードスパン '{code_content}' を抽出")
+            return code_content
+        
+        # 子要素がない場合のシンプルなノード処理
+        if "children" not in node:
+            raw_text = node.get("raw", node.get("text", ""))
+            logger.info(f"_node_to_text: シンプルノード '{raw_text}' を抽出")
+            return raw_text
+        
+        # 子要素を持つ複合ノードを処理
         texts = []
         for child in node["children"]:
             child_type = child.get("type", "")
             
             if child_type == "text":
-                texts.append(child.get("raw", child.get("text", "")))
+                text_content = child.get("raw", child.get("text", ""))
+                texts.append(text_content)
+                
             elif child_type == "strong":
-                texts.append("**" + self._node_to_text(child) + "**")
+                strong_text = self._node_to_text(child)
+                texts.append(strong_text)  # 太字マーカーは不要
+                
             elif child_type == "emphasis":
-                texts.append("*" + self._node_to_text(child) + "*")
-            elif child_type == "code":
-                texts.append("`" + child.get("raw", child.get("text", "")) + "`")
+                emph_text = self._node_to_text(child)
+                texts.append(emph_text)  # 斜体マーカーは不要
+                
+            elif child_type == "codespan":
+                code_content = child.get("raw", "")
+                # バッククォートを除去
+                if code_content.startswith("`") and code_content.endswith("`"):
+                    code_content = code_content[1:-1]
+                texts.append(code_content)
+                
             elif "children" in child:
                 texts.append(self._node_to_text(child))
         
-        return "".join(texts)
+        result = "".join(texts)
+        logger.info(f"_node_to_text: 複合ノード '{result}' を抽出")
+        return result
     
     def _list_item_to_text(self, item: Dict[str, Any]) -> str:
         """リスト項目からテキストを抽出する
@@ -427,6 +462,8 @@ class PPTXBuilder:
         children = item.get("children", [])
         texts = []
         
+        logger.info(f"リスト項目処理開始: {item}")
+        
         for child in children:
             child_type = child.get("type", "")
             
@@ -436,41 +473,72 @@ class PPTXBuilder:
                 block_children = child.get("children", [])
                 block_text = ""
                 
+                # ここでブロックの全ての子要素のタイプを確認
+                if logger.isEnabledFor(logging.DEBUG):
+                    for i, bc in enumerate(block_children):
+                        logger.debug(f"  block_child[{i}]: type={bc.get('type')}, raw={bc.get('raw')}")
+                
                 for block_child in block_children:
-                    # インラインノードの処理（text, codespan, strong, emphasis等）
-                    if block_child.get("type") == "text":
-                        block_text += block_child.get("raw", "")
-                    elif block_child.get("type") == "codespan":
-                        # コードスパンは特別な処理
-                        block_text += block_child.get("raw", "")
-                    elif block_child.get("type") in ["strong", "emphasis"]:
+                    block_child_type = block_child.get("type", "")
+                    logger.info(f"処理中のブロック子要素: type={block_child_type}, raw={block_child.get('raw')}")
+                    
+                    if block_child_type == "text":
+                        text_content = block_child.get("raw", "")
+                        block_text += text_content
+                        logger.info(f"テキスト追加: '{text_content}'")
+                    
+                    elif block_child_type == "codespan":
+                        # コードスパンの内容をそのまま追加（バッククォートなし）
+                        code_content = block_child.get("raw", "")
+                        # codespan.rawはバッククォート含む場合があるので除去
+                        if code_content.startswith("`") and code_content.endswith("`"):
+                            code_content = code_content[1:-1]
+                        block_text += code_content
+                        logger.info(f"コードスパン追加: '{code_content}'")
+                    
+                    elif block_child_type in ["strong", "emphasis"]:
                         # 強調とイタリック
                         emphasis_children = block_child.get("children", [])
+                        emphasis_text = ""
                         for em_child in emphasis_children:
-                            block_text += em_child.get("raw", "")
+                            em_content = em_child.get("raw", "")
+                            emphasis_text += em_content
+                        block_text += emphasis_text
+                        logger.info(f"強調追加: '{emphasis_text}'")
+                    
                     else:
                         # その他のノードタイプ
-                        block_text += self._node_to_text(block_child)
+                        other_text = self._node_to_text(block_child)
+                        block_text += other_text
+                        logger.info(f"その他の要素追加: '{other_text}'")
                 
-                logger.info(f"抽出されたテキスト (block_text内): {block_text}")
-                texts.append(block_text)
+                logger.info(f"抽出されたテキスト (block_text内): '{block_text}'")
+                if block_text:
+                    texts.append(block_text)
             
             elif child_type == "paragraph":
                 # 段落要素の処理
                 paragraph_text = self._node_to_text(child)
-                texts.append(paragraph_text)
+                logger.info(f"段落テキスト: '{paragraph_text}'")
+                if paragraph_text:
+                    texts.append(paragraph_text)
                 
             elif child_type == "list":
                 # ネストされたリスト（サポート用にプレースホルダー）
-                texts.append("[サブリスト]")
+                # [サブリスト]というプレースホルダーは不要なため、実際の内容があるときだけ追加
+                # 実際のリスト内容を処理するのはPPTXBuilderの別メソッド
+                pass
                 
             else:
                 # その他のノードタイプ
                 text = self._node_to_text(child)
-                texts.append(text)
+                logger.info(f"その他のノードテキスト: '{text}'")
+                if text:
+                    texts.append(text)
         
-        result = " ".join(texts)
-        logger.info(f"リスト項目から抽出された最終テキスト: {result}")
+        # 余分な空白を入れないよう結合
+        result = "".join(texts)
+        logger.info(f"リスト項目から抽出された最終テキスト: '{result}'")
         return result
     
     def _add_slide_number(self, slide, current: int, total: int) -> None:
