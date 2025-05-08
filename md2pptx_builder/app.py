@@ -94,7 +94,8 @@ def create_presentation(
     background_path: str, 
     logo_path: str, 
     template_path: Optional[str] = None,
-    output_filename: str = "output.pptx"
+    output_filename: str = "output.pptx",
+    font_family: str = "メイリオ"
 ) -> Optional[str]:
     """プレゼンテーションを作成する
     
@@ -104,6 +105,7 @@ def create_presentation(
         logo_path: ロゴ画像パス
         template_path: テンプレートパス（オプション）
         output_filename: 出力ファイル名
+        font_family: 使用するフォント
         
     Returns:
         Optional[str]: 出力ファイルパスまたはNone
@@ -133,6 +135,7 @@ def create_presentation(
             background_path=background_path,
             logo_path=logo_path,
             template_path=template_path,
+            font_family=font_family,
             verbose=False
         )
         
@@ -197,6 +200,27 @@ def app():
             logo_path = None
             st.warning("ロゴ画像をアップロードしてください")
         
+        # フォント設定
+        st.subheader("フォント設定")
+        font_options = {
+            "メイリオ": "メイリオ",
+            "游ゴシック": "游ゴシック",
+            "MS Pゴシック": "MS Pゴシック",
+            "MS P明朝": "MS P明朝",
+            "游明朝": "游明朝",
+            "M PLUS 1": "M PLUS 1",
+            "Noto Sans JP": "Noto Sans JP",
+            "Noto Serif JP": "Noto Serif JP",
+            "BIZ UDゴシック": "BIZ UDゴシック",
+            "BIZ UD明朝": "BIZ UD明朝",
+        }
+        selected_font = st.selectbox(
+            "フォント選択",
+            options=list(font_options.keys()),
+            index=0,
+            help="スライドで使用するフォントを選択してください"
+        )
+        
         # テンプレート（オプション）
         template_file = st.file_uploader("テンプレートPPTX（オプション）", type=["pptx"])
         if template_file:
@@ -251,7 +275,8 @@ def app():
                     background_path=background_path,
                     logo_path=logo_path,
                     template_path=template_path,
-                    output_filename=output_filename
+                    output_filename=output_filename,
+                    font_family=font_options[selected_font]
                 )
                 
                 if output_path:
