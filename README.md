@@ -15,12 +15,34 @@ CLIとGUI（Streamlit）の両方に対応しています。
 
 ## インストール
 
+### 推奨: 仮想環境を使用したインストール
+```bash
+# 1. リポジトリをクローン
+git clone https://github.com/yourusername/md2pptx-builder.git
+cd md2pptx-builder
+
+# 2. 仮想環境を作成して有効化
+## Windows
+python -m venv venv
+.\venv\Scripts\activate
+
+## macOS/Linux
+python -m venv venv
+source venv/bin/activate
+
+# 3. 依存パッケージをインストール
+pip install -r requirements.txt
+
+# 4. 開発モードでインストール
+pip install -e .
+```
+
 ### pipから直接インストール（予定）
 ```bash
 pip install md2pptx-builder
 ```
 
-### リポジトリからインストール
+### リポジトリから直接インストール
 ```bash
 git clone https://github.com/yourusername/md2pptx-builder.git
 cd md2pptx-builder
@@ -28,6 +50,19 @@ pip install -e .
 ```
 
 ## 使い方
+
+### 推奨: 仮想環境内での実行
+
+```bash
+# 仮想環境が有効化されていることを確認
+## Windows
+.\venv\Scripts\activate
+## macOS/Linux
+source venv/bin/activate
+
+# Streamlitアプリを起動
+python -m streamlit run md2pptx_builder/app.py
+```
 
 ### CLIから使用する場合
 
@@ -48,11 +83,11 @@ md2pptx-builder --help
 ### GUIから使用する場合
 
 ```bash
-# Streamlitアプリを起動
-streamlit run -m md2pptx_builder.app
+# 仮想環境内でStreamlitアプリを起動（推奨）
+python -m streamlit run md2pptx_builder/app.py
 
-# または、開発環境から直接実行する場合
-streamlit run md2pptx_builder/app.py
+# または、モジュールとして実行
+streamlit run -m md2pptx_builder.app
 ```
 
 ブラウザで `http://localhost:8501/` にアクセスすると、GUIが表示されます。
@@ -128,6 +163,16 @@ Markdownファイルは以下の区切り文字でスライド分割されます
 # 開発用インストール
 git clone https://github.com/yourusername/md2pptx-builder.git
 cd md2pptx-builder
+
+# 仮想環境を作成して有効化
+python -m venv venv
+.\venv\Scripts\activate  # Windowsの場合
+source venv/bin/activate  # macOS/Linuxの場合
+
+# 依存パッケージをインストール
+pip install -r requirements.txt
+
+# 開発モードでインストール
 pip install -e ".[dev]"
 
 # テスト実行
@@ -148,6 +193,6 @@ MIT
 ## サンプル実行
 
 ```bash
-# サンプルMarkdownからプレゼンテーションを生成
-md2pptx-builder samples/test.md -b background.jpg -l logo.jpg -o output.pptx
+# 仮想環境内でサンプルMarkdownからプレゼンテーションを生成
+python -m md2pptx_builder samples/test.md -b background.jpg -l logo.jpg -o output.pptx
 ``` 

@@ -181,7 +181,7 @@ def app():
             background_path = save_uploaded_file(background_file)
             
             # プレビュー
-            st.image(background_file, caption="背景画像", use_column_width=True)
+            st.image(background_file, caption="背景画像", use_container_width=True)
         else:
             background_path = None
             st.warning("背景画像をアップロードしてください")
@@ -192,7 +192,7 @@ def app():
             logo_path = save_uploaded_file(logo_file)
             
             # プレビュー
-            st.image(logo_file, caption="ロゴ画像", use_column_width=True)
+            st.image(logo_file, caption="ロゴ画像", use_container_width=True)
         else:
             logo_path = None
             st.warning("ロゴ画像をアップロードしてください")
