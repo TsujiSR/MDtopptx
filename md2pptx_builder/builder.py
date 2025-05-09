@@ -24,18 +24,26 @@ class PPTXBuilder:
                  background_path: str, 
                  logo_path: str, 
                  template_path: Optional[str] = None,
+                 font_family: str = "メイリオ",
                  verbose: bool = False):
         """
         Args:
             background_path: 背景画像のパス
             logo_path: ロゴ画像のパス
             template_path: テンプレートPPTXのパス（オプション）
+            font_family: 使用するフォント
             verbose: 詳細ログを出力するかどうか
         """
         self.background_path = background_path
         self.logo_path = logo_path
         self.template_path = template_path
+        self.font_family = font_family
         self.verbose = verbose
+        
+        # フォント設定の英語フォールバック対応
+        self.fallback_font = "Arial"
+        if "明朝" in self.font_family or "Serif" in self.font_family:
+            self.fallback_font = "Times New Roman"
         
         # 画像ファイルのチェック
         if not is_valid_image(background_path):
@@ -134,25 +142,25 @@ class PPTXBuilder:
             title: タイトルテキスト
         """
         title_box = slide.shapes.add_textbox(
-            Inches(1),  # 左マージン
-            Inches(0.8),  # 上マージン（1→0.8に減少）
-            self.prs.slide_width - Inches(2),  # 幅（両側マージン1インチずつ）
-            Inches(1.3)  # 高さ（1.5→1.3に調整）
+            Inches(0.5),  # 左マージン縮小 (0.6→0.5)
+            Inches(0.5),  # 上マージン縮小 (0.6→0.5)
+            self.prs.slide_width - Inches(2.0),  # 幅
+            Inches(1.0)  # 高さ縮小 (1.2→1.0)
         )
         
         title_frame = title_box.text_frame
         title_frame.text = title
-        title_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+        title_frame.paragraphs[0].alignment = PP_ALIGN.LEFT  # 左揃え
         
         # タイトル下の余白を追加
-        title_frame.paragraphs[0].space_after = Pt(12)
+        title_frame.paragraphs[0].space_after = Pt(4)  # 余白縮小 (6→4)
         
         title_run = title_frame.paragraphs[0].runs[0]
-        title_run.font.size = Pt(32)  # タイトルサイズ (36pt→32ptへ)
+        title_run.font.size = Pt(30)  # タイトルサイズ変更 (36→30)
         title_run.font.bold = True
         title_run.font.color.rgb = RGBColor(0, 0, 0)  # 黒色
-        title_run.font.name = "メイリオ"
-        title_run.font.name_ascii = "Arial"  # フォールバック
+        title_run.font.name = self.font_family
+        title_run.font.name_ascii = self.fallback_font  # 英文用フォールバック
     
     def _add_content(self, slide, content_ast: List[Dict[str, Any]]) -> None:
         """スライドにMarkdownコンテンツを追加する
@@ -168,10 +176,10 @@ class PPTXBuilder:
         
         # コンテンツ領域の定義 - マージン改善
         content_box = slide.shapes.add_textbox(
-            Inches(1.0),  # 左マージン（0.8→1.0に増加）
-            Inches(2.5),  # タイトル下から（2.8→2.5に減少でタイトルに近く）
-            self.prs.slide_width - Inches(2.0),  # 幅（両側マージン1.0インチずつ）
-            self.prs.slide_height - Inches(3.0)  # 高さ（下部マージン考慮、3.2→3.0で少し拡大）
+            Inches(0.7),  # 左マージン (1.0→0.7)
+            Inches(1.6),  # タイトル下の開始位置 (2.0→1.6)
+            self.prs.slide_width - Inches(1.5),  # 幅（右マージン縮小 2.0→1.5）
+            self.prs.slide_height - Inches(2.0)  # 高さ（拡大 2.5→2.0）
         )
         
         text_frame = content_box.text_frame
@@ -179,7 +187,7 @@ class PPTXBuilder:
         text_frame.auto_size = True  # テキストに合わせて自動調整
         
         # 段落間のスペーシング設定
-        text_frame.paragraphs[0].space_after = Pt(6)  # 段落後の間隔
+        text_frame.paragraphs[0].space_after = Pt(4)  # 段落後の間隔縮小（8→4）
         
         # 最初の段落をクリア
         if text_frame.paragraphs:
@@ -202,129 +210,136 @@ class PPTXBuilder:
         """
         node_type = node.get("type", "")
         
-        # ヘッディング処理
-        if node_type == "heading":
-            level = node.get("attrs", {}).get("level", 2)
-            if level > 1:  # H1はスライドタイトルで使用済み
-                paragraph = text_frame.add_paragraph()
-                text = self._node_to_text(node)
-                paragraph.text = text
-                
-                # 段落間のスペーシング
-                paragraph.space_before = Pt(12)  # 見出し前の間隔
-                paragraph.space_after = Pt(6)    # 見出し後の間隔
-                
-                # 見出しスタイル設定
-                for run in paragraph.runs:
-                    run.font.size = Pt(22 - (level - 2) * 2)  # H2: 22pt, H3: 20pt, ... (前は24pt)
-                    run.font.bold = True
-                    run.font.color.rgb = RGBColor(0, 0, 0)
-                    run.font.name = "メイリオ"
-                    run.font.name_ascii = "Arial"
-        
-        # 段落処理
+        if node_type == "blank_line":
+            # 空行は段落を追加して空白を作る
+            p = text_frame.add_paragraph()
+            p.space_after = Pt(4)  # 空行の後の間隔（8→4）
+            
         elif node_type == "paragraph":
-            paragraph = text_frame.add_paragraph()
-            text = self._node_to_text(node)
-            paragraph.text = text
+            # 段落テキストの抽出と追加
+            p = text_frame.add_paragraph()
+            p.space_after = Pt(8)  # 段落間の間隔（12→8）
             
-            # 段落間のスペーシング
-            paragraph.space_after = Pt(6)  # 段落後の間隔
+            children = node.get("children", [])
+            for child in children:
+                self._process_inline_node(child, p)
             
-            # 段落スタイル設定
-            for run in paragraph.runs:
-                run.font.size = Pt(16)  # 通常テキスト
-                run.font.color.rgb = RGBColor(0, 0, 0)
-                run.font.name = "メイリオ"
-                run.font.name_ascii = "Arial"
-        
-        # リスト処理（最も重要な部分）
+        elif node_type == "heading":
+            # 見出しの処理
+            level = node.get("attrs", {}).get("level", 2)
+            children = node.get("children", [])
+            
+            p = text_frame.add_paragraph()
+            p.space_before = Pt(10)  # 見出し前の間隔（16→10）
+            p.space_after = Pt(6)  # 見出し後の間隔（8→6）
+            
+            # 見出しレベルに応じたフォントサイズ設定
+            font_size = {
+                2: 26,  # H2（28→26）
+                3: 22,  # H3（24→22）
+                4: 18,  # H4（20→18）
+                5: 16,  # H5（18→16）
+                6: 15   # H6（16→15）
+            }.get(level, 26)
+            
+            for child in children:
+                run = p.add_run()
+                run.text = self._node_to_text(child)
+                run.font.bold = True
+                run.font.size = Pt(font_size)
+                run.font.name = self.font_family
+                run.font.name_ascii = self.fallback_font
+            
         elif node_type == "list":
+            # リストの処理
+            # リスト前に少し余白を追加（小さめに調整）
+            space_before = text_frame.add_paragraph()
+            space_before.space_after = Pt(2)  # 余白縮小（4→2）
+            
+            # リスト処理
             self._process_list_direct(node, text_frame)
+            
+            # リスト後に余白を追加（小さめに調整）
+            space_after = text_frame.add_paragraph()
+            space_after.space_after = Pt(4)  # 余白縮小（8→4）
         
-        # コードブロック処理
         elif node_type == "block_code":
-            code_para = text_frame.add_paragraph()
-            code_text = node.get("raw", node.get("text", ""))
-            code_para.text = code_text
+            # コードブロックの処理
+            code_text = node.get("raw", "")
+            lang = node.get("attrs", {}).get("info", "")
             
-            # コードブロックの間隔
-            code_para.space_before = Pt(8)
-            code_para.space_after = Pt(8)
+            p = text_frame.add_paragraph()
+            p.space_before = Pt(12)  # コードブロック前の間隔（6→12）
+            p.space_after = Pt(12)  # コードブロック後の間隔（6→12）
             
-            for run in code_para.runs:
-                run.font.size = Pt(14)  # コードを小さく (16→14pt)
-                run.font.name = "Consolas"
-                run.font.name_ascii = "Consolas"
-                run.font.color.rgb = RGBColor(30, 30, 30)  # 少し明るい黒
+            # 言語情報があれば追加
+            if lang:
+                lang_run = p.add_run()
+                lang_run.text = f"{lang}:\n"
+                lang_run.font.bold = True
+                lang_run.font.size = Pt(14)
+                self._apply_font_to_run(lang_run)
+            
+            # コードブロックの追加
+            code_run = p.add_run()
+            code_run.text = code_text
+            code_run.font.size = Pt(14)
+            code_run.font.name = "Consolas"  # コード用モノスペースフォント
+            code_run.font.name_ascii = "Consolas"
     
     def _process_list_direct(self, node: Dict[str, Any], text_frame) -> None:
-        """リストを直接処理する
+        """リストを処理してテキストフレームに追加する
         
         Args:
             node: リストノード
-            text_frame: テキストフレーム
+            text_frame: 追加先のテキストフレーム
         """
-        ordered = node.get("ordered", False)
+        is_ordered = node.get("attrs", {}).get("ordered", False)
         list_items = node.get("children", [])
+        depth = node.get("attrs", {}).get("depth", 0)
         
-        # リスト開始前の余白
-        if text_frame.paragraphs and text_frame.paragraphs[-1].text:
-            space_para = text_frame.add_paragraph()
-            space_para.space_before = Pt(4)
-            space_para.space_after = Pt(0)
-        
-        item_number = 0
-        for item in list_items:
-            if item.get("type") != "list_item":
-                continue
+        for i, item in enumerate(list_items):
+            try:
+                # リスト項目テキストを抽出（改善版）
+                item_text = self._extract_list_item_text(item)
                 
-            item_number += 1
-            
-            # 各箇条書き項目に対する新しい段落
-            para = text_frame.add_paragraph()
-            
-            # 箇条書き間のスペーシング
-            para.space_before = Pt(0)
-            para.space_after = Pt(2)  # 項目間の間隔を小さく
-            
-            # 箇条書きマーカーを作成
-            if ordered:
-                bullet = f"{item_number}. "
-            else:
-                bullet = "• "
-            
-            # 箇条書きの内容を抽出
-            item_text = self._list_item_to_text(item)
-            
-            # 段落にテキストを設定
-            para.text = bullet + item_text
-            
-            # スタイルを適用
-            for run in para.runs:
-                run.font.size = Pt(15)  # 箇条書きサイズ (14→15pt)
-                run.font.color.rgb = RGBColor(0, 0, 0)
-                run.font.name = "メイリオ"
-                run.font.name_ascii = "Arial"
+                logger.info(f"リスト項目 {i} テキスト: '{item_text}'")
                 
-                # 強調表示（**text**）
-                if "**" in run.text:
-                    parts = run.text.split("**")
-                    new_text = ""
-                    for i, part in enumerate(parts):
-                        if i % 2 == 1:  # 強調部分
-                            run.font.bold = True
-                        new_text += part
-                    run.text = new_text
-            
-            # ネストされたリストを処理
-            self._process_nested_lists(item, text_frame)
-        
-        # リスト終了後の余白
-        if list_items:
-            space_para = text_frame.add_paragraph()
-            space_para.space_before = Pt(2)
-            space_para.space_after = Pt(0)
+                # 空のリスト項目は処理しない
+                if not item_text.strip():
+                    logger.info(f"空のリスト項目をスキップ: {item}")
+                    continue
+                
+                # コロンの後にスペースを追加（必要な場合）
+                if ":" in item_text and " " not in item_text.split(":", 1)[0]:
+                    parts = item_text.split(":", 1)
+                    if len(parts) == 2:
+                        item_text = f"{parts[0]}: {parts[1].lstrip()}"
+                        logger.info(f"コロン処理後: '{item_text}'")
+                
+                # リスト番号またはマーカーを生成
+                marker = f"{i+1}." if is_ordered else "•"
+                
+                # リスト項目を段落として追加
+                p = text_frame.add_paragraph()
+                p.level = depth  # インデントレベル
+                p.space_after = Pt(3)  # 項目間の間隔を減らす（5→3）
+                
+                run = p.add_run()
+                # マーカーとテキストを結合
+                run.text = f"{marker} {item_text}"
+                
+                # フォントスタイル設定 - サイズをやや大きく
+                base_size = 18 if depth == 0 else 16  # 基本サイズをやや小さく調整
+                run.font.size = Pt(base_size - depth)  # ネストレベルに応じて小さく
+                self._apply_font_to_run(run)
+                
+                # 子リストがあれば再帰的に処理
+                self._process_nested_lists(item, text_frame)
+                
+            except Exception as e:
+                logger.error(f"リスト項目処理エラー: {e}", exc_info=True)
+                # エラーがあっても処理を続行
     
     def _process_nested_lists(self, parent_item: Dict[str, Any], text_frame) -> None:
         """ネストされたリストを処理する
@@ -333,49 +348,38 @@ class PPTXBuilder:
             parent_item: 親リスト項目
             text_frame: テキストフレーム
         """
-        for child in parent_item.get("children", []):
+        children = parent_item.get("children", [])
+        
+        # children内のリストを検索
+        for child in children:
             if child.get("type") == "list":
-                # インデントを適用したサブリスト
-                sub_items = child.get("children", [])
-                ordered = child.get("ordered", False)
+                # 子リストがある場合、深さを増やして処理
+                child_list = child
+                depth = child_list.get("attrs", {}).get("depth", 0) + 1
                 
-                for i, sub_item in enumerate(sub_items, 1):
-                    if sub_item.get("type") != "list_item":
-                        continue
-                    
-                    # サブ項目用の新しい段落
-                    sub_para = text_frame.add_paragraph()
-                    
-                    # サブリスト項目の間隔
-                    sub_para.space_before = Pt(1)
-                    sub_para.space_after = Pt(1)
-                    
-                    # インデントを設定
-                    sub_para.level = 1
-                    
-                    # サブリストのマーカー
-                    if ordered:
-                        sub_bullet = f"    {i}. "
-                    else:
-                        sub_bullet = "    ◦ "
-                    
-                    # サブアイテムのテキスト
-                    sub_text = self._list_item_to_text(sub_item)
-                    
-                    # 段落にテキストを設定
-                    sub_para.text = sub_bullet + sub_text
-                    
-                    # スタイルを適用
-                    for run in sub_para.runs:
-                        run.font.size = Pt(13)  # サブリストサイズ (12→13pt)
-                        run.font.color.rgb = RGBColor(0, 0, 0)
-                        run.font.name = "メイリオ"
-                        run.font.name_ascii = "Arial"
-                        
-                        # 強調表示を適用
-                        if "**" in run.text:
-                            run.text = run.text.replace("**", "")
-                            run.font.bold = True
+                # 深さ情報を設定
+                if "attrs" not in child_list:
+                    child_list["attrs"] = {}
+                child_list["attrs"]["depth"] = depth
+                
+                # リストを処理
+                self._process_list_direct(child_list, text_frame)
+                
+                # ネストされたリスト後に余分な空白を追加（見やすさのため）
+                space_para = text_frame.add_paragraph()
+                space_para.space_after = Pt(4)
+                
+                # ネストされたリストのマーカーを追加
+                if child_list.get("attrs", {}).get("ordered", False):
+                    marker = f"{depth}. "
+                else:
+                    marker = "• "
+                
+                # マーカーを段落に追加
+                marker_run = space_para.add_run()
+                marker_run.text = marker
+                marker_run.font.size = Pt(14)
+                self._apply_font_to_run(marker_run)
     
     def _node_to_text(self, node: Dict[str, Any]) -> str:
         """ノードからテキストを抽出する
@@ -523,8 +527,136 @@ class PPTXBuilder:
         number_run = number_frame.paragraphs[0].runs[0]
         number_run.font.size = Pt(12)  # フォントサイズ小さく（14→12pt）
         number_run.font.color.rgb = RGBColor(80, 80, 80)  # グレー
-        number_run.font.name = "メイリオ"
-        number_run.font.name_ascii = "Arial"
+        self._apply_font_to_run(number_run)
+    
+    def _apply_font_to_run(self, run) -> None:
+        """テキストランにフォント設定を適用する
+        
+        Args:
+            run: テキストラン
+        """
+        try:
+            # 日本語フォント設定
+            run.font.name = self.font_family
+            # 英語フォールバック設定
+            run.font.name_ascii = self.fallback_font
+            # Eastasia用フォント（CJK文字）も設定
+            if hasattr(run.font, 'name_eastasia'):
+                run.font.name_eastasia = self.font_family
+        except Exception as e:
+            logger.warning(f"フォント適用エラー: {e}")
+    
+    def _process_inline_node(self, node: Dict[str, Any], paragraph) -> None:
+        """インラインノードを処理して段落に追加する
+        
+        Args:
+            node: インラインノードデータ
+            paragraph: 追加先の段落
+        """
+        node_type = node.get("type", "")
+        
+        if node_type == "text":
+            run = paragraph.add_run()
+            run.text = node.get("raw", "")
+            run.font.size = Pt(18)  # 本文フォントサイズ
+            self._apply_font_to_run(run)
+            
+        elif node_type == "strong":
+            # 太字
+            children = node.get("children", [])
+            for child in children:
+                run = paragraph.add_run()
+                run.text = self._node_to_text(child)
+                run.font.bold = True
+                run.font.size = Pt(18)
+                self._apply_font_to_run(run)
+                
+        elif node_type == "emphasis":
+            # 斜体
+            children = node.get("children", [])
+            for child in children:
+                run = paragraph.add_run()
+                run.text = self._node_to_text(child)
+                run.font.italic = True
+                run.font.size = Pt(18)
+                self._apply_font_to_run(run)
+                
+        elif node_type == "codespan":
+            # インラインコード - rawキーを優先的に使用
+            run = paragraph.add_run()
+            run.text = node.get("raw", "")
+            run.font.name = "Consolas"  # コード用モノスペースフォント
+            run.font.name_ascii = "Consolas"
+            run.font.size = Pt(16)
+            # 背景色を薄いグレーに設定
+            run.font.fill.solid()
+            run.font.fill.fore_color.rgb = RGBColor(60, 60, 60)  # 濃いめのグレー
+            
+        elif node_type in ["link", "image"]:
+            # リンクは下線付きテキスト、画像は今後の課題として通常テキストで
+            text = node.get("text", "") or node.get("raw", "")
+            run = paragraph.add_run()
+            run.text = text
+            run.font.size = Pt(18)
+            if node_type == "link":
+                run.font.underline = True
+            self._apply_font_to_run(run)
+    
+    def _extract_list_item_text(self, item: Dict[str, Any]) -> str:
+        """リスト項目からテキストを効率的に抽出する改善版メソッド
+        
+        Args:
+            item: リスト項目ノード
+            
+        Returns:
+            str: 抽出されたテキスト
+        """
+        if not item or "children" not in item:
+            return ""
+            
+        # リスト項目の子要素を取得
+        children = item.get("children", [])
+        result_text = ""
+        
+        # block_text要素を探す（最も一般的なリスト項目の構造）
+        for child in children:
+            if child.get("type") == "block_text" and "children" in child:
+                block_children = child.get("children", [])
+                
+                # 子要素を順番に処理
+                for block_child in block_children:
+                    child_type = block_child.get("type", "")
+                    
+                    # テキスト要素
+                    if child_type == "text":
+                        result_text += block_child.get("raw", "")
+                    
+                    # コードスパン要素
+                    elif child_type == "codespan":
+                        result_text += block_child.get("raw", "")
+                    
+                    # 強調・太字要素
+                    elif child_type in ["strong", "emphasis"]:
+                        for grandchild in block_child.get("children", []):
+                            result_text += grandchild.get("raw", "")
+                            
+                # block_text処理完了
+                return result_text
+        
+        # その他のケース用のフォールバック処理
+        for child in children:
+            if "raw" in child:
+                result_text += child.get("raw", "")
+            elif "children" in child:
+                # 再帰的に子要素を処理
+                for grandchild in child.get("children", []):
+                    if "raw" in grandchild:
+                        result_text += grandchild.get("raw", "")
+                    elif "children" in grandchild:
+                        for gc in grandchild.get("children", []):
+                            result_text += gc.get("raw", "")
+        
+        return result_text
     
     def build_presentation(self, slides_data: List[Dict[str, Any]], output_path: str) -> None:
         """スライドデータからプレゼンテーションを構築し保存する
